@@ -217,8 +217,10 @@ One mistake and it's over.</p>
     };
 
     let animationFrameId = null;
+    let levelTransitionTimeoutId = null;
     let acceptingInput = false;
     let generatedRun = [];
+    let lastFirstLevelId = null;
 
     function level(id, part, text, difficultyScore, requiresMemory, validate, options = {}) {
       return {
@@ -373,7 +375,7 @@ One mistake and it's over.</p>
 
     function partForLevel(levelNumber){ return PART_CONFIG.find((p)=>levelNumber>=p.start&&levelNumber<=p.end); }
 
-    function buildRunLevels(){
+    function buildRunLevels(avoidFirstLevelId = null){
       const pool=buildLevelPool();
       const result=[];
       const playedIds=[];
@@ -399,10 +401,28 @@ One mistake and it's over.</p>
           playedIds.push(picked.id);
         }
       }
-      return result.slice(0,TOTAL_LEVELS);
+      const finalRun = result.slice(0,TOTAL_LEVELS);
+      if (avoidFirstLevelId && finalRun.length > 0 && finalRun[0].id === avoidFirstLevelId) {
+        const swapIdx = finalRun.findIndex((lvl, idx) => idx > 0 && lvl.part === 1 && lvl.id !== avoidFirstLevelId);
+        if (swapIdx > 0) {
+          [finalRun[0], finalRun[swapIdx]] = [finalRun[swapIdx], finalRun[0]];
+        }
+      }
+      return finalRun;
     }
 
     function showScreen(name){ Object.values(dom.screens).forEach((s)=>s.classList.remove('active')); dom.screens[name].classList.add('active'); }
+
+    function clearActiveTimers(){
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (levelTransitionTimeoutId) {
+        clearTimeout(levelTransitionTimeoutId);
+        levelTransitionTimeoutId = null;
+      }
+    }
 
     function resetGameState(){
       gameState.currentLevel=1;
@@ -423,13 +443,19 @@ One mistake and it's over.</p>
     }
 
     function startGame(){
+      clearActiveTimers();
       resetGameState();
-      generatedRun=buildRunLevels();
+      generatedRun=buildRunLevels(lastFirstLevelId);
+      lastFirstLevelId = generatedRun[0]?.id || null;
       showScreen('game');
       startLevel();
     }
 
     function startLevel(){
+      if (levelTransitionTimeoutId) {
+        clearTimeout(levelTransitionTimeoutId);
+        levelTransitionTimeoutId = null;
+      }
       if(animationFrameId) cancelAnimationFrame(animationFrameId);
       acceptingInput=true;
       dom.mainButton.disabled=false;
@@ -523,7 +549,7 @@ One mistake and it's over.</p>
       if(!correct){ endGameOver(); return; }
       if(gameState.currentLevel>=TOTAL_LEVELS){ endWin(); return; }
       gameState.currentLevel+=1;
-      setTimeout(startLevel,320);
+      levelTransitionTimeoutId = setTimeout(startLevel,320);
     }
 
     function endGameOver(){
@@ -541,7 +567,7 @@ One mistake and it's over.</p>
     }
 
     function backToHome(){
-      if(animationFrameId) cancelAnimationFrame(animationFrameId);
+      clearActiveTimers();
       acceptingInput=false;
       lightShake(false);
       showScreen('home');
