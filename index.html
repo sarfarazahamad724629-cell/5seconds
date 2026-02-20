@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5 Seconds — Think fast. Or lose.</title>
+  <style>
+    :root {
+      --hue: 120;
+      --bg-core: hsl(var(--hue), 55%, 9%);
+      --bg-mid: hsl(var(--hue), 60%, 6%);
+      --bg-glow: hsla(var(--hue), 85%, 45%, 0.16);
+      --neon-soft: hsla(140, 95%, 62%, 0.45);
+      --text: #eaffea;
+      --muted: #9ec6a0;
+      --progress: 1;
+      --vignette-opacity: 0;
+      --red-glow-opacity: 0;
+      --shake-x: 0px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      background: radial-gradient(circle at 50% 50%, var(--bg-glow), transparent 54%), linear-gradient(180deg, var(--bg-core), var(--bg-mid));
+      overflow: hidden;
+      transition: background 0.8s ease;
+    }
+    body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; }
+    body::before {
+      background: radial-gradient(circle, transparent 45%, rgba(0, 0, 0, 0.78) 100%);
+      opacity: var(--vignette-opacity);
+      transition: opacity 0.6s ease;
+    }
+    body::after {
+      background: radial-gradient(circle at 50% 55%, rgba(255, 0, 0, 0.18), transparent 65%);
+      opacity: var(--red-glow-opacity);
+      transition: opacity 0.6s ease;
+    }
+    .app {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      transform: translateX(var(--shake-x));
+      transition: transform 100ms linear;
+      padding: 16px;
+    }
+    .screen {
+      width: min(980px, 100%);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      visibility: hidden;
+      position: absolute;
+      inset: 0;
+      margin: auto;
+    }
+    .screen.active { visibility: visible; opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    h1 { font-size: clamp(2.6rem, 9vw, 5rem); margin: 0 0 10px; letter-spacing: 0.05em; text-shadow: 0 0 20px var(--neon-soft); }
+    .subtitle { color: var(--muted); margin: 8px 0 20px; font-size: clamp(1rem, 2.8vw, 1.5rem); }
+    .desc { margin: 0 auto 24px; max-width: 50ch; line-height: 1.5; color: #c2e2c4; white-space: pre-line; }
+    .neon-btn {
+      border: 1px solid hsla(140, 95%, 62%, 0.8);
+      background: rgba(3, 20, 3, 0.78);
+      color: #d9ffd9;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.25s ease;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 0 22px rgba(0, 255, 119, 0.3);
+    }
+    .neon-btn:hover, .neon-btn:focus-visible { transform: translateY(-1px) scale(1.02); box-shadow: 0 0 30px rgba(0, 255, 119, 0.45); background: rgba(10, 30, 10, 0.95); }
+    .info { margin-top: 14px; color: #9ab69b; font-size: 0.9rem; }
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+      margin: 8px auto 20px;
+      width: min(760px, 100%);
+      color: #b7dbba;
+      font-size: clamp(0.88rem, 2.4vw, 1.05rem);
+      text-align: left;
+    }
+    .hud div { background: rgba(10,20,10,0.35); border: 1px solid rgba(146,209,157,0.15); border-radius: 10px; padding: 8px 10px; }
+    .ring-wrap {
+      width: min(84vw, 390px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: 10px auto 0;
+      background:
+        radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.4) 62%),
+        conic-gradient(hsl(calc(var(--hue) * 0.92 + 8), 92%, 54%) calc(var(--progress) * 360deg), rgba(110, 140, 112, 0.15) 0deg);
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    .main-btn {
+      width: 82%; height: 82%; border-radius: 50%;
+      border: 2px solid hsla(140, 95%, 62%, 0.7);
+      background: radial-gradient(circle at 30% 30%, rgba(21, 50, 27, 0.75), rgba(5, 16, 8, 0.95));
+      color: #ecffec; font-size: clamp(0.95rem, 2.4vw, 1.25rem); font-weight: 700; line-height: 1.32;
+      text-align: center; padding: 20px; cursor: pointer; text-shadow: 0 0 8px rgba(0,255,153,0.35);
+      box-shadow: inset 0 0 20px rgba(44, 255, 142, 0.25), 0 0 20px rgba(0, 255, 119, 0.15);
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    }
+    .main-btn:active { transform: scale(0.98); }
+    .main-btn[disabled] { cursor: not-allowed; opacity: 0.88; }
+    .warning-phase .main-btn { animation: pulse 0.5s ease-in-out infinite alternate; box-shadow: inset 0 0 24px rgba(255, 116, 116, 0.34), 0 0 28px rgba(255, 80, 80, 0.38); border-color: rgba(255, 105, 105, 0.85); }
+    @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.018); } }
+    .end-text { margin: 12px 0; font-size: clamp(1rem, 3vw, 1.25rem); color: #d2e9d4; }
+    .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+
+    .home-wrap { display:flex; justify-content:center; align-items:center; min-height:100%; }
+    .home-card {
+      width:min(950px, 96%);
+      text-align:left;
+      background: linear-gradient(180deg, rgba(2,24,12,0.9), rgba(1,17,8,0.94));
+      border: 1px solid rgba(84,255,161,0.28);
+      border-radius: 22px;
+      padding: clamp(22px,4vw,46px);
+      box-shadow: 0 0 40px rgba(0,255,119,0.24), inset 0 0 30px rgba(0,120,60,0.2);
+      animation: fadeIn 0.5s ease;
+    }
+    .home-title { font-size: clamp(2.2rem,8vw,5rem); margin:0 0 16px; letter-spacing:0.06em; text-transform: uppercase; }
+    .home-subtitle { font-size: clamp(1.1rem,2.8vw,2rem); margin: 0 0 18px; color:#cde8d2; }
+    .home-actions { display:flex; gap:12px; flex-wrap:wrap; margin-top: 18px; }
+    .ghost-btn {
+      border: 1px solid rgba(143, 214, 164, 0.4);
+      background: rgba(6, 26, 14, 0.45);
+      color: #d3f1da;
+      padding: 14px 26px;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .creator { margin-top: 30px; font-size:1.25rem; color:#b8d8c0; }
+    .creator strong { color:#50ff9f; text-shadow:0 0 12px rgba(80,255,159,0.45); }
+    .credits-body { display:grid; place-items:center; min-height:100%; }
+    .credits-card {
+      width:min(780px, 96%);
+      background: linear-gradient(180deg, rgba(4, 19, 12, 0.92), rgba(2, 14, 8, 0.95));
+      border:1px solid rgba(90, 230, 154, 0.26);
+      border-radius:20px;
+      padding: clamp(24px, 4vw, 40px);
+      animation: fadeIn 0.45s ease;
+    }
+    .credits-main { font-size: clamp(1.1rem,2.7vw,1.5rem); line-height:1.6; color:#d8f0df; white-space:pre-line; margin: 18px auto; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform: translateY(0);} }
+    @media (max-width: 700px) { .hud { grid-template-columns: 1fr; } .main-btn { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <section id="homeScreen" class="screen active" aria-label="Home">
+      <div class="home-wrap">
+        <div class="home-card">
+          <h1 class="home-title">5 Seconds</h1>
+          <p class="home-subtitle">One Button. 80 Levels. 5 Seconds Each.</p>
+          <p class="desc">Every level gives you a rule.
+Press only if it's true.
+Think carefully.
+One mistake and it's over.</p>
+          <div class="home-actions">
+            <button id="startBtn" class="neon-btn">Start Game</button>
+            <button id="creditsBtn" class="ghost-btn">Credits</button>
+          </div>
+          <p class="info">Best played with sound on.</p>
+          <p class="creator">Created by <strong>M2Z Alongside</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="creditsScreen" class="screen" aria-label="Credits">
+      <div class="credits-body">
+        <div class="credits-card">
+          <h1>CREDITS</h1>
+          <p class="credits-main">10 Minutes of Creepy/Scary Horror Background Sounds and Music
+By Aidan Halm</p>
+          <p class="end-text">Game created by M2Z Studios</p>
+          <div class="actions">
+            <button id="creditsBackBtn" class="neon-btn">Back to Home</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="screen" aria-label="Game">
+      <div class="hud">
+        <div id="levelLabel">Level 1 / 80</div>
+        <div id="partLabel">Part 1 — Kiddo</div>
+        <div id="pressLabel">Total Presses: 0</div>
+      </div>
+      <div class="ring-wrap" id="ringWrap">
+        <button id="mainButton" class="main-btn" aria-label="Main action button"></button>
+      </div>
+    </section>
+
+    <section id="gameOverScreen" class="screen" aria-label="Game Over">
+      <h1>Game Over</h1>
+      <p id="gameOverLevel" class="end-text"></p>
+      <p id="gameOverPresses" class="end-text"></p>
+      <p id="gameOverPart" class="end-text"></p>
+      <div class="actions">
+        <button id="restartBtn" class="neon-btn">Restart</button>
+        <button id="backHomeBtn" class="neon-btn">Back to Home</button>
+      </div>
+    </section>
+
+    <section id="winScreen" class="screen" aria-label="Win">
+      <h1>You Survived.</h1>
+      <p id="winPresses" class="end-text"></p>
+      <p id="winTime" class="end-text"></p>
+      <div class="actions">
+        <button id="playAgainBtn" class="neon-btn">Play Again</button>
+      </div>
+    </section>
+  </div>
+
+  <audio id="bgmAudio" src="scary-bgm.mp3" preload="auto" loop></audio>
+
+  <script>
+    const TOTAL_LEVELS = 80;
+    const LEVEL_DURATION_MS = 5000;
+    const PART_CONFIG = [
+      { part: 1, name: 'Kiddo', start: 1, end: 10 },
+      { part: 2, name: 'Easy', start: 11, end: 25 },
+      { part: 3, name: 'Normal', start: 26, end: 40 },
+      { part: 4, name: 'Tricky', start: 41, end: 55 },
+      { part: 5, name: 'Insane', start: 56, end: 70 },
+      { part: 6, name: 'Hardcore', start: 71, end: 80 }
+    ];
+
+    const gameState = {
+      currentLevel: 1,
+      totalPresses: 0,
+      previousPressed: false,
+      levelStartTime: 0,
+      pressTime: null,
+      randomValueForLevel: 0,
+      randomIntForLevel: 0,
+      pressedThisLevel: false,
+      pressesThisLevelCount: 0,
+      gameStartTime: 0,
+      levelHistory: [],
+      ruleHistory: {},
+      pressHistory: {},
+      difficultyPart: 1,
+      activeLevelDef: null
+    };
+
+    const dom = {
+      screens: {
+        home: document.getElementById('homeScreen'),
+        credits: document.getElementById('creditsScreen'),
+        game: document.getElementById('gameScreen'),
+        over: document.getElementById('gameOverScreen'),
+        win: document.getElementById('winScreen')
+      },
+      startBtn: document.getElementById('startBtn'),
+      creditsBtn: document.getElementById('creditsBtn'),
+      creditsBackBtn: document.getElementById('creditsBackBtn'),
+      restartBtn: document.getElementById('restartBtn'),
+      backHomeBtn: document.getElementById('backHomeBtn'),
+      playAgainBtn: document.getElementById('playAgainBtn'),
+      levelLabel: document.getElementById('levelLabel'),
+      partLabel: document.getElementById('partLabel'),
+      pressLabel: document.getElementById('pressLabel'),
+      mainButton: document.getElementById('mainButton'),
+      ringWrap: document.getElementById('ringWrap'),
+      gameOverLevel: document.getElementById('gameOverLevel'),
+      gameOverPresses: document.getElementById('gameOverPresses'),
+      gameOverPart: document.getElementById('gameOverPart'),
+      winPresses: document.getElementById('winPresses'),
+      winTime: document.getElementById('winTime'),
+      bgmAudio: document.getElementById('bgmAudio')
+    };
+
+    let animationFrameId = null;
+    let levelTransitionTimeoutId = null;
+    let acceptingInput = false;
+    let generatedRun = [];
+    let lastFirstLevelId = null;
+    let audioFadeIntervalId = null;
+
+    function level(id, part, text, difficultyScore, requiresMemory, validate, options = {}) {
+      return {
+        id,
+        part,
+        text,
+        difficultyScore,
+        requiresMemory,
+        dependencies: options.dependencies || [],
+        allowMultiPress: options.allowMultiPress || false,
+        setup: options.setup || null,
+        validate
+      };
+    }
+
+    function buildLevelPool() {
+      return [
+        level('P1-1',1,'Press.',1,false,()=>true),
+        level('P1-2',1,'Don\'t press.',1,false,()=>false),
+        level('P1-3',1,'Press if level number is odd.',1,false,(s)=>s.currentLevel%2===1),
+        level('P1-4',1,'Press if 4 + 4 = 8.',1,false,()=>true),
+        level('P1-5',1,'Press if 10 is greater than 20.',1,false,()=>false),
+        level('P1-6',1,'Press if 12 is divisible by 3.',2,false,()=>12%3===0),
+        level('P1-7',1,'Press if total presses is currently even.',2,false,(s)=>s.totalPresses%2===0),
+        level('P1-8',1,'Press if this level is in Part 1.',2,false,(s)=>s.difficultyPart===1),
+        level('P1-9',1,'Press if 2^3 = 8.',2,false,()=>Math.pow(2,3)===8),
+        level('P1-10',1,'Press if current level is 10 or lower.',2,false,(s)=>s.currentLevel<=10),
+
+        level('P2-11',2,'Press if current level number is divisible by 3.',3,false,(s)=>s.currentLevel%3===0),
+        level('P2-12',2,'Press only if previous level was pressed.',3,true,(s)=>s.previousPressed),
+        level('P2-13',2,'Press only if previous level was NOT pressed.',3,true,(s)=>!s.previousPressed),
+        level('P2-14',2,'Press if total presses is at least 4.',3,false,(s)=>s.totalPresses>=4),
+        level('P2-15',2,'Press if 9 × 4 = 36.',3,false,()=>true),
+        level('P2-16',2,'Press if 17 is a prime number.',3,false,()=>true),
+        level('P2-17',2,'Press if this level text length is over 25 characters.',3,false,(s)=>s.activeLevelDef.text.length>25),
+        level('P2-18',2,'Press if random number (0–1) is greater than 0.5.',4,false,(s)=>s.randomValueForLevel>0.5),
+        level('P2-19',2,'Press if random integer (1–9) is odd.',4,false,(s)=>s.randomIntForLevel%2===1),
+        level('P2-20',2,'Press if level P1-1 appeared earlier in this run.',4,true,(s)=>s.levelHistory.includes('P1-1'),{dependencies:['P1-1']}),
+        level('P2-21',2,'Press if you pressed exactly once on the previous level.',4,true,(s)=>{
+          const prevId=s.levelHistory[s.levelHistory.length-1];
+          return prevId? s.pressHistory[prevId]===true : false;
+        }),
+        level('P2-22',2,'Press if total played levels so far is even.',4,false,(s)=>s.levelHistory.length%2===0),
+        level('P2-23',2,'Press if 64/8 = 8.',4,false,()=>true),
+        level('P2-24',2,'Press if current part number equals 2.',4,false,(s)=>s.difficultyPart===2),
+        level('P2-25',2,'Press if level number contains digit 2.',4,false,(s)=>String(s.currentLevel).includes('2')),
+
+        level('P3-26',3,'Press exactly 2 times this level.',5,false,(s)=>s.pressesThisLevelCount===2,{allowMultiPress:true}),
+        level('P3-27',3,'Press if total presses is divisible by 3.',5,false,(s)=>s.totalPresses%3===0),
+        level('P3-28',3,'Press if random integer (1–9) is at least 6.',5,false,(s)=>s.randomIntForLevel>=6),
+        level('P3-29',3,'Press if 13 + 21 = 34.',5,false,()=>true),
+        level('P3-30',3,'Press if previous two levels had different outcomes.',5,true,(s)=>{
+          if(s.levelHistory.length<2) return false;
+          const a=s.pressHistory[s.levelHistory[s.levelHistory.length-1]];
+          const b=s.pressHistory[s.levelHistory[s.levelHistory.length-2]];
+          return a!==b;
+        }),
+        level('P3-31',3,'Press if level P2-18 has appeared.',5,true,(s)=>s.levelHistory.includes('P2-18'),{dependencies:['P2-18']}),
+        level('P3-32',3,'Press if current level number is prime.',5,false,(s)=>isPrime(s.currentLevel)),
+        level('P3-33',3,'Press if the sum of current level digits is even.',6,false,(s)=>sumDigits(s.currentLevel)%2===0),
+        level('P3-34',3,'Press if total presses is between 8 and 20.',6,false,(s)=>s.totalPresses>=8 && s.totalPresses<=20),
+        level('P3-35',3,'Press if you did NOT press level P2-12.',6,true,(s)=>s.pressHistory['P2-12']===false,{dependencies:['P2-12']}),
+        level('P3-36',3,'Press if random number is below 0.25.',6,false,(s)=>s.randomValueForLevel<0.25),
+        level('P3-37',3,'Press if 5! equals 120.',6,false,()=>true),
+        level('P3-38',3,'Press if current part is 3 and level number is even.',6,false,(s)=>s.difficultyPart===3 && s.currentLevel%2===0),
+        level('P3-39',3,'Press if exactly one of the last two levels was pressed.',6,true,(s)=>{
+          if(s.levelHistory.length<2) return false;
+          const a=Boolean(s.pressHistory[s.levelHistory[s.levelHistory.length-1]]);
+          const b=Boolean(s.pressHistory[s.levelHistory[s.levelHistory.length-2]]);
+          return a!==b;
+        }),
+        level('P3-40',3,'Press exactly at 3 seconds (±0.35s).',6,false,(s)=>s.pressedThisLevel && s.pressTime!==null && Math.abs(s.pressTime-3)<=0.35),
+
+        level('P4-41',4,'Press if random integer plus level digit sum is over 10.',7,false,(s)=>s.randomIntForLevel+sumDigits(s.currentLevel)>10),
+        level('P4-42',4,'Press if level P3-26 was completed with a press.',7,true,(s)=>s.pressHistory['P3-26']===true,{dependencies:['P3-26']}),
+        level('P4-43',4,'Press exactly 3 times this level.',7,false,(s)=>s.pressesThisLevelCount===3,{allowMultiPress:true}),
+        level('P4-44',4,'Press if total presses so far is odd.',7,false,(s)=>s.totalPresses%2===1),
+        level('P4-45',4,'Press if previous level ID ends with an odd digit.',7,true,(s)=>{
+          const prev=s.levelHistory[s.levelHistory.length-1];
+          if(!prev) return false;
+          return Number(prev[prev.length-1])%2===1;
+        }),
+        level('P4-46',4,'Press if random number in this level is between 0.2 and 0.8.',7,false,(s)=>s.randomValueForLevel>0.2&&s.randomValueForLevel<0.8),
+        level('P4-47',4,'Press if Fibonacci(7) = 13.',7,false,()=>fibonacci(7)===13),
+        level('P4-48',4,'Press if at least 3 of the last 5 levels were pressed.',8,true,(s)=>{
+          const ids=s.levelHistory.slice(-5);
+          return ids.filter((id)=>s.pressHistory[id]).length>=3;
+        }),
+        level('P4-49',4,'Press if P2-13 outcome was NOT pressed.',8,true,(s)=>s.pressHistory['P2-13']===false,{dependencies:['P2-13']}),
+        level('P4-50',4,'Press if (current level % 5) equals (total presses % 5).',8,false,(s)=>s.currentLevel%5===s.totalPresses%5),
+        level('P4-51',4,'Press if random integer is a prime number.',8,false,(s)=>isPrime(s.randomIntForLevel)),
+        level('P4-52',4,'Press if this part number is even.',8,false,(s)=>s.difficultyPart%2===0),
+        level('P4-53',4,'Press if you pressed both of the previous two levels.',8,true,(s)=>{
+          if(s.levelHistory.length<2) return false;
+          const a=s.pressHistory[s.levelHistory[s.levelHistory.length-1]];
+          const b=s.pressHistory[s.levelHistory[s.levelHistory.length-2]];
+          return Boolean(a&&b);
+        }),
+        level('P4-54',4,'Press exactly when timer is under 2 seconds.',8,false,(s)=>s.pressedThisLevel&&s.pressTime!==null&&s.pressTime>=3),
+        level('P4-55',4,'Press if level P1-8 was pressed.',8,true,(s)=>s.pressHistory['P1-8']===true,{dependencies:['P1-8']}),
+
+        level('P5-56',5,'Press exactly 4 times this level.',9,false,(s)=>s.pressesThisLevelCount===4,{allowMultiPress:true}),
+        level('P5-57',5,'Press if random integer is 1, 3, 5, or 7.',9,false,(s)=>[1,3,5,7].includes(s.randomIntForLevel)),
+        level('P5-58',5,'Press if total presses in last 4 levels is at least 2.',9,true,(s)=>{
+          const ids=s.levelHistory.slice(-4);
+          return ids.filter((id)=>s.pressHistory[id]).length>=2;
+        }),
+        level('P5-59',5,'Press if level P4-43 required multi-press and was successful.',9,true,(s)=>s.pressHistory['P4-43']===true,{dependencies:['P4-43']}),
+        level('P5-60',5,'Press if (random integer × 2) is greater than digit sum of level.',9,false,(s)=>s.randomIntForLevel*2>sumDigits(s.currentLevel)),
+        level('P5-61',5,'Press if previous level was NOT pressed and total presses is even.',9,true,(s)=>!s.previousPressed && s.totalPresses%2===0),
+        level('P5-62',5,'Press if random number rounded to 1 decimal is at least 0.6.',9,false,(s)=>Math.round(s.randomValueForLevel*10)/10>=0.6),
+        level('P5-63',5,'Press if exactly 2 of last 3 levels were pressed.',9,true,(s)=>{
+          const ids=s.levelHistory.slice(-3);
+          return ids.filter((id)=>s.pressHistory[id]).length===2;
+        }),
+        level('P5-64',5,'Press if level number has two even digits.',9,false,(s)=>String(s.currentLevel).split('').every((d)=>Number(d)%2===0)),
+        level('P5-65',5,'Press if P3-40 was pressed within its timing window.',9,true,(s)=>s.pressHistory['P3-40']===true,{dependencies:['P3-40']}),
+        level('P5-66',5,'Press if random integer equals number of letters in "insane" modulo 10.',9,false,(s)=>s.randomIntForLevel===6),
+        level('P5-67',5,'Press if total played levels so far is prime.',10,false,(s)=>isPrime(s.levelHistory.length)),
+        level('P5-68',5,'Press if previous 3 levels were all different outcomes.',10,true,(s)=>{
+          if(s.levelHistory.length<3) return false;
+          const ids=s.levelHistory.slice(-3);
+          const vals=ids.map((id)=>Boolean(s.pressHistory[id]));
+          return !(vals[0]===vals[1] && vals[1]===vals[2]);
+        }),
+        level('P5-69',5,'Press if random integer plus current part is greater than 8.',10,false,(s)=>s.randomIntForLevel+s.difficultyPart>8),
+        level('P5-70',5,'Press exactly at 2 seconds (±0.35s).',10,false,(s)=>s.pressedThisLevel&&s.pressTime!==null&&Math.abs(s.pressTime-2)<=0.35),
+
+        level('P6-71',6,'Press exactly 5 times this level.',10,false,(s)=>s.pressesThisLevelCount===5,{allowMultiPress:true}),
+        level('P6-72',6,'Press if last 5 levels contain exactly 3 presses.',10,true,(s)=>{
+          const ids=s.levelHistory.slice(-5);
+          return ids.filter((id)=>s.pressHistory[id]).length===3;
+        }),
+        level('P6-73',6,'Press if random integer is prime AND random number > 0.4.',10,false,(s)=>isPrime(s.randomIntForLevel)&&s.randomValueForLevel>0.4),
+        level('P6-74',6,'Press if P5-56 was pressed and P5-70 was not pressed.',10,true,(s)=>s.pressHistory['P5-56']===true&&s.pressHistory['P5-70']===false,{dependencies:['P5-56','P5-70']}),
+        level('P6-75',6,'Press if total presses modulo 4 equals level number modulo 4.',10,false,(s)=>s.totalPresses%4===s.currentLevel%4),
+        level('P6-76',6,'Press only after 4.0 seconds have passed.',10,false,(s)=>s.pressedThisLevel&&s.pressTime!==null&&s.pressTime>=4),
+        level('P6-77',6,'Press if exactly one of P4-54 and P3-40 was pressed.',10,true,(s)=>Boolean(s.pressHistory['P4-54'])!==Boolean(s.pressHistory['P3-40']),{dependencies:['P4-54','P3-40']}),
+        level('P6-78',6,'Press if random integer equals count of pressed levels in last 9 modulo 10.',10,true,(s)=>{
+          const count=s.levelHistory.slice(-9).filter((id)=>s.pressHistory[id]).length;
+          return s.randomIntForLevel===count%10;
+        }),
+        level('P6-79',6,'Press if total presses is between 25 and 55 inclusive.',10,false,(s)=>s.totalPresses>=25&&s.totalPresses<=55),
+        level('P6-80',6,'Press if all previous part-6 memory checks were true.',10,true,(s)=>['P6-72','P6-74','P6-77','P6-78'].every((id)=>s.levelHistory.includes(id)&&s.pressHistory[id]===true),{dependencies:['P6-72','P6-74','P6-77','P6-78']})
+      ];
+    }
+
+    function isPrime(num){ if(num<2)return false; for(let i=2;i<=Math.sqrt(num);i+=1){ if(num%i===0)return false; } return true; }
+    function fibonacci(n){ if(n<2)return n; let a=0,b=1; for(let i=2;i<=n;i+=1){ [a,b]=[b,a+b]; } return b; }
+    function sumDigits(n){ return String(Math.abs(n)).split('').reduce((acc,d)=>acc+Number(d),0); }
+    function shuffle(arr){ for(let i=arr.length-1;i>0;i-=1){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+    function partForLevel(levelNumber){ return PART_CONFIG.find((p)=>levelNumber>=p.start&&levelNumber<=p.end); }
+
+    function buildRunLevels(avoidFirstLevelId = null){
+      const pool=buildLevelPool();
+      const result=[];
+      const playedIds=[];
+
+      for(const partMeta of PART_CONFIG){
+        const remaining=shuffle(pool.filter((l)=>l.part===partMeta.part));
+        while(remaining.length){
+          let pickedIndex=-1;
+          for(let i=0;i<remaining.length;i+=1){
+            const candidate=remaining[i];
+            const depsMet=candidate.dependencies.every((dep)=>playedIds.includes(dep));
+            if(depsMet){ pickedIndex=i; break; }
+          }
+          if(pickedIndex===-1){
+            // fallback deterministic safe level
+            const fallback=level(`F-${partMeta.part}-${remaining.length}`,partMeta.part,'Press if current part number is even.',partMeta.part+2,false,(s)=>s.difficultyPart%2===0);
+            result.push(fallback);
+            playedIds.push(fallback.id);
+            break;
+          }
+          const [picked]=remaining.splice(pickedIndex,1);
+          result.push(picked);
+          playedIds.push(picked.id);
+        }
+      }
+      const finalRun = result.slice(0,TOTAL_LEVELS);
+      if (avoidFirstLevelId && finalRun.length > 0 && finalRun[0].id === avoidFirstLevelId) {
+        const swapIdx = finalRun.findIndex((lvl, idx) => idx > 0 && lvl.part === 1 && lvl.id !== avoidFirstLevelId);
+        if (swapIdx > 0) {
+          [finalRun[0], finalRun[swapIdx]] = [finalRun[swapIdx], finalRun[0]];
+        }
+      }
+      return finalRun;
+    }
+
+    function showScreen(name){ Object.values(dom.screens).forEach((s)=>s.classList.remove('active')); dom.screens[name].classList.add('active'); }
+
+    function clearActiveTimers(){
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      if (levelTransitionTimeoutId) {
+        clearTimeout(levelTransitionTimeoutId);
+        levelTransitionTimeoutId = null;
+      }
+    }
+
+    function clearAudioFade(){
+      if (audioFadeIntervalId) {
+        clearInterval(audioFadeIntervalId);
+        audioFadeIntervalId = null;
+      }
+    }
+
+    async function startBackgroundMusic(){
+      clearAudioFade();
+      const audio = dom.bgmAudio;
+      audio.loop = true;
+      if (audio.paused) {
+        audio.volume = 0.46;
+        try { await audio.play(); } catch (err) { /* user gesture restrictions */ }
+      }
+      updateMusicTension();
+    }
+
+    function stopBackgroundMusic(){
+      clearAudioFade();
+      const audio = dom.bgmAudio;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 0.46;
+    }
+
+    function fadeMusicTo(targetVolume, durationMs = 450){
+      const audio = dom.bgmAudio;
+      if (audio.paused) return;
+      clearAudioFade();
+      const start = audio.volume;
+      const steps = 12;
+      let i = 0;
+      audioFadeIntervalId = setInterval(() => {
+        i += 1;
+        const t = i / steps;
+        audio.volume = start + (targetVolume - start) * t;
+        if (i >= steps) {
+          clearAudioFade();
+          audio.volume = targetVolume;
+        }
+      }, Math.max(16, Math.floor(durationMs / steps)));
+    }
+
+    function updateMusicTension(){
+      const audio = dom.bgmAudio;
+      if (audio.paused) return;
+      let target = 0.46;
+      if (gameState.currentLevel >= 20) target = 0.54;
+      if (gameState.currentLevel >= 56) target = 0.6;
+      audio.volume = Math.min(0.62, target);
+    }
+
+    function resetGameState(){
+      gameState.currentLevel=1;
+      gameState.totalPresses=0;
+      gameState.previousPressed=false;
+      gameState.levelStartTime=0;
+      gameState.pressTime=null;
+      gameState.randomValueForLevel=0;
+      gameState.randomIntForLevel=0;
+      gameState.pressedThisLevel=false;
+      gameState.pressesThisLevelCount=0;
+      gameState.gameStartTime=performance.now();
+      gameState.levelHistory=[];
+      gameState.ruleHistory={};
+      gameState.pressHistory={};
+      gameState.difficultyPart=1;
+      gameState.activeLevelDef=null;
+    }
+
+    function startGame(){
+      clearActiveTimers();
+      startBackgroundMusic();
+      resetGameState();
+      generatedRun=buildRunLevels(lastFirstLevelId);
+      lastFirstLevelId = generatedRun[0]?.id || null;
+      showScreen('game');
+      startLevel();
+    }
+
+    function startLevel(){
+      if (levelTransitionTimeoutId) {
+        clearTimeout(levelTransitionTimeoutId);
+        levelTransitionTimeoutId = null;
+      }
+      if(animationFrameId) cancelAnimationFrame(animationFrameId);
+      acceptingInput=true;
+      dom.mainButton.disabled=false;
+      dom.ringWrap.classList.remove('warning-phase');
+      gameState.levelStartTime=performance.now();
+      gameState.pressTime=null;
+      gameState.pressedThisLevel=false;
+      gameState.pressesThisLevelCount=0;
+      gameState.randomValueForLevel=Math.random();
+      gameState.randomIntForLevel=Math.floor(Math.random()*9)+1;
+      gameState.activeLevelDef=generatedRun[gameState.currentLevel-1];
+      const partMeta=partForLevel(gameState.currentLevel);
+      gameState.difficultyPart=partMeta.part;
+      if(gameState.activeLevelDef?.setup){ gameState.activeLevelDef.setup(gameState); }
+      updateMusicTension();
+      renderLevelUI();
+      animationFrameId=requestAnimationFrame(updateTimerLoop);
+    }
+
+    function renderLevelUI(){
+      const level=gameState.activeLevelDef;
+      dom.mainButton.textContent=level.text;
+      dom.levelLabel.textContent=`Level ${gameState.currentLevel} / ${TOTAL_LEVELS}`;
+      dom.partLabel.textContent=`Part ${gameState.difficultyPart} — ${partForLevel(gameState.currentLevel).name}`;
+      dom.pressLabel.textContent=`Total Presses: ${gameState.totalPresses}`;
+      updateBackgroundByLevel();
+      document.documentElement.style.setProperty('--progress','1');
+    }
+
+    function updateTimerLoop(now){
+      const elapsed=now-gameState.levelStartTime;
+      const remainingRatio=Math.max(0,1-elapsed/LEVEL_DURATION_MS);
+      document.documentElement.style.setProperty('--progress', String(remainingRatio));
+      if(elapsed>=4000){ dom.ringWrap.classList.add('warning-phase'); lightShake(true); } else { dom.ringWrap.classList.remove('warning-phase'); lightShake(false); }
+      if(elapsed>=LEVEL_DURATION_MS){ resolveLevel(); return; }
+      animationFrameId=requestAnimationFrame(updateTimerLoop);
+    }
+
+    function handlePress(){
+      if(!acceptingInput) return;
+      const level=gameState.activeLevelDef;
+      if(!level.allowMultiPress && gameState.pressedThisLevel) return;
+      gameState.pressedThisLevel=true;
+      gameState.pressesThisLevelCount+=1;
+      gameState.totalPresses+=1;
+      gameState.pressTime=(performance.now()-gameState.levelStartTime)/1000;
+      dom.pressLabel.textContent=`Total Presses: ${gameState.totalPresses}`;
+
+      if(level.allowMultiPress){
+        const target=gameState.currentLevel===26?2:gameState.currentLevel===43?3:gameState.currentLevel===56?4:gameState.currentLevel===71?5:null;
+        if(target!==null){
+          if(gameState.pressesThisLevelCount===target){ resolveLevel(); }
+          else if(gameState.pressesThisLevelCount>target){ failImmediately(); }
+          return;
+        }
+      }
+      dom.mainButton.disabled=true;
+      resolveLevel();
+    }
+
+    function failImmediately(){
+      acceptingInput=false;
+      dom.mainButton.disabled=true;
+      lightShake(false);
+      if(animationFrameId) cancelAnimationFrame(animationFrameId);
+      persistLevelOutcome(false);
+      endGameOver();
+    }
+
+    function persistLevelOutcome(pressed){
+      const level=gameState.activeLevelDef;
+      gameState.levelHistory.push(level.id);
+      gameState.ruleHistory[level.id]=level.text;
+      gameState.pressHistory[level.id]=pressed;
+      gameState.previousPressed=pressed;
+    }
+
+    function resolveLevel(){
+      if(!acceptingInput) return;
+      acceptingInput=false;
+      dom.mainButton.disabled=true;
+      lightShake(false);
+      if(animationFrameId) cancelAnimationFrame(animationFrameId);
+
+      const level=gameState.activeLevelDef;
+      const conditionTrue=Boolean(level.validate(gameState));
+      const wasPressed=gameState.pressedThisLevel;
+      const correct=conditionTrue===wasPressed;
+
+      persistLevelOutcome(wasPressed);
+
+      if(!correct){ endGameOver(); return; }
+      if(gameState.currentLevel>=TOTAL_LEVELS){ endWin(); return; }
+      gameState.currentLevel+=1;
+      levelTransitionTimeoutId = setTimeout(startLevel,320);
+    }
+
+    function endGameOver(){
+      fadeMusicTo(0.22, 650);
+      dom.gameOverLevel.textContent=`You reached Level ${gameState.currentLevel}`;
+      dom.gameOverPresses.textContent=`Total Presses: ${gameState.totalPresses}`;
+      dom.gameOverPart.textContent=`Part ${gameState.difficultyPart} — ${partForLevel(gameState.currentLevel).name}`;
+      showScreen('over');
+    }
+
+    function endWin(){
+      const totalSeconds=((performance.now()-gameState.gameStartTime)/1000).toFixed(1);
+      dom.winPresses.textContent=`Total Presses: ${gameState.totalPresses}`;
+      dom.winTime.textContent=`Total Time Taken: ${totalSeconds}s`;
+      showScreen('win');
+    }
+
+    function backToHome(){
+      clearActiveTimers();
+      stopBackgroundMusic();
+      acceptingInput=false;
+      lightShake(false);
+      showScreen('home');
+    }
+
+    function showCredits(){
+      clearActiveTimers();
+      acceptingInput=false;
+      lightShake(false);
+      showScreen('credits');
+    }
+
+    function updateBackgroundByLevel(){
+      const hue=120-((gameState.currentLevel-1)/79)*120;
+      document.documentElement.style.setProperty('--hue', hue.toFixed(2));
+      const vignette=gameState.currentLevel>=52?Math.min(0.62,(gameState.currentLevel-51)*0.02):0;
+      const redGlow=gameState.currentLevel>=68?Math.min(0.82,(gameState.currentLevel-67)*0.06):0;
+      document.documentElement.style.setProperty('--vignette-opacity', vignette.toString());
+      document.documentElement.style.setProperty('--red-glow-opacity', redGlow.toString());
+    }
+
+    function lightShake(on){
+      if(!on||gameState.currentLevel<73){ document.documentElement.style.setProperty('--shake-x','0px'); return; }
+      const amount=(Math.random()-0.5)*3;
+      document.documentElement.style.setProperty('--shake-x', `${amount.toFixed(2)}px`);
+    }
+
+    dom.startBtn.addEventListener('click', startGame);
+    dom.creditsBtn.addEventListener('click', showCredits);
+    dom.creditsBackBtn.addEventListener('click', backToHome);
+    dom.restartBtn.addEventListener('click', startGame);
+    dom.playAgainBtn.addEventListener('click', startGame);
+    dom.backHomeBtn.addEventListener('click', backToHome);
+    dom.mainButton.addEventListener('click', handlePress);
+
+    updateBackgroundByLevel();
+  </script>
+</body>
+</html>
