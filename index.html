@@ -249,7 +249,8 @@ One mistake and it's over.</p>
       pressedLevels: new Set(),
       level7RuleRemembered: false,
       minuteAtLevel11: null,
-      totalPressesAtLevelStart: 0
+      totalPressesAtLevelStart: 0,
+      pressesThisLevelCount: 0
     };
 
     const dom = {
@@ -284,7 +285,7 @@ One mistake and it's over.</p>
         { text: 'Press if level number is odd.', validate: (s) => s.currentLevel % 2 === 1 },
         { text: "Don\'t press.", validate: () => false },
         { text: 'Press if 249 + 38 = 287.', validate: () => 249 + 38 === 287 },
-        { text: 'Press button exactly level number times.', validate: (s) => s.totalPressesAtLevelStart === (s.currentLevel - 1) },
+        { text: 'Press button exactly level number times.', validate: (s) => s.pressesThisLevelCount === s.currentLevel },
         { text: 'Press if OpenAI owns Instagram.', validate: () => false },
         { text: 'Press if sum of current time digits is even.', validate: () => {
           const now = new Date();
@@ -357,6 +358,7 @@ One mistake and it's over.</p>
       gameState.level7RuleRemembered = false;
       gameState.minuteAtLevel11 = null;
       gameState.totalPressesAtLevelStart = 0;
+      gameState.pressesThisLevelCount = 0;
     }
 
     function startGame() {
@@ -375,6 +377,7 @@ One mistake and it's over.</p>
       gameState.pressTime = null;
       gameState.pressedThisLevel = false;
       gameState.totalPressesAtLevelStart = gameState.totalPresses;
+      gameState.pressesThisLevelCount = 0;
       gameState.randomValueForLevel = Math.random();
       if (gameState.currentLevel === 11) {
         gameState.minuteAtLevel11 = new Date().getMinutes();
@@ -419,12 +422,29 @@ One mistake and it's over.</p>
     }
 
     function handlePress() {
-      if (!acceptingInput || gameState.pressedThisLevel) return;
+      if (!acceptingInput) return;
+
+      if (gameState.currentLevel !== 5 && gameState.pressedThisLevel) return;
+
       gameState.pressedThisLevel = true;
+      gameState.pressesThisLevelCount += 1;
       gameState.totalPresses += 1;
       gameState.pressedLevels.add(gameState.currentLevel);
       gameState.pressTime = (performance.now() - gameState.levelStartTime) / 1000;
       dom.pressLabel.textContent = `Total Presses: ${gameState.totalPresses}`;
+
+      if (gameState.currentLevel === 5) {
+        if (gameState.pressesThisLevelCount === gameState.currentLevel) {
+          resolveLevel();
+        } else if (gameState.pressesThisLevelCount > gameState.currentLevel) {
+          endGameOver();
+          acceptingInput = false;
+          if (animationFrameId) cancelAnimationFrame(animationFrameId);
+          dom.mainButton.disabled = true;
+        }
+        return;
+      }
+
       dom.mainButton.disabled = true;
       resolveLevel();
     }
@@ -439,7 +459,9 @@ One mistake and it's over.</p>
       const level = levelLogic[gameState.currentLevel - 1];
       const conditionTrue = Boolean(level.validate(gameState));
       const wasPressed = gameState.pressedThisLevel;
-      const correct = conditionTrue === wasPressed;
+      const correct = gameState.currentLevel === 5
+        ? gameState.pressesThisLevelCount === gameState.currentLevel
+        : conditionTrue === wasPressed;
 
       if (!correct) {
         endGameOver();
