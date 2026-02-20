@@ -283,7 +283,7 @@ One mistake and it's over.</p>
         { text: 'Press if level number is odd.', validate: (s) => s.currentLevel % 2 === 1 },
         { text: "Don\'t press.", validate: () => false },
         { text: 'Press if 249 + 38 = 287.', validate: () => 249 + 38 === 287 },
-        { text: 'Press button exactly level number times.', validate: (s) => (s.totalPresses + (s.pressedThisLevel ? 1 : 0)) === s.currentLevel },
+        { text: 'Press button exactly level number times.', validate: (s) => s.totalPresses === s.currentLevel },
         { text: 'Press if OpenAI owns Instagram.', validate: () => false },
         { text: 'Press if sum of current time digits is even.', validate: () => {
           const now = new Date();
@@ -294,12 +294,12 @@ One mistake and it's over.</p>
         { text: 'Press if square root of 144 is 12.', validate: () => Math.sqrt(144) === 12 },
         { text: 'Press if 0.1 + 0.2 === 0.3.', validate: () => 0.1 + 0.2 === 0.3 },
         { text: 'Press if current minute is prime.', validate: (s) => isPrime(s.minuteAtLevel11 ?? new Date().getMinutes()) },
-        { text: 'Press if seconds divisible by 3.', validate: () => new Date().getSeconds() % 3 === 0 },
+        { text: 'Press if the current level number is divisible by 3.', validate: (s) => s.currentLevel % 3 === 0 },
         { text: 'Press if Earth has 2 moons.', validate: () => false },
         { text: 'Press if India is in Asia.', validate: () => true },
         { text: 'Press if Instagram is owned by Meta.', validate: () => true },
         { text: "Don\'t press this.", validate: () => false },
-        { text: 'Press only if you think you shouldn\'t.', validate: () => true },
+        { text: 'Press only if you did NOT press the previous level.', validate: (s) => !s.previousPressed },
         { text: 'Press if this is NOT level 18.', validate: (s) => s.currentLevel !== 18 },
         { text: 'Press every even level.', validate: (s) => s.currentLevel % 2 === 0 },
         { text: 'Press only if previous level was pressed.', validate: (s) => s.previousPressed },
@@ -315,7 +315,7 @@ One mistake and it's over.</p>
         { text: 'Press if you remember level 7 rule.', validate: (s) => s.level7RuleRemembered },
         { text: 'Press if random number > 0.7.', validate: (s) => s.randomValueForLevel > 0.7 },
         { text: 'Press if background color is blue.', validate: () => false },
-        { text: 'Press only if total presses made equals exactly 9.', validate: (s) => (s.totalPresses + (s.pressedThisLevel ? 1 : 0)) === 9 }
+        { text: 'Press only if total presses made equals exactly 9.', validate: (s) => s.totalPresses === 9 }
       ];
     }
 
