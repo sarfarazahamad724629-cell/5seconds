@@ -115,20 +115,80 @@
     @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.018); } }
     .end-text { margin: 12px 0; font-size: clamp(1rem, 3vw, 1.25rem); color: #d2e9d4; }
     .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+
+    .home-wrap { display:flex; justify-content:center; align-items:center; min-height:100%; }
+    .home-card {
+      width:min(950px, 96%);
+      text-align:left;
+      background: linear-gradient(180deg, rgba(2,24,12,0.9), rgba(1,17,8,0.94));
+      border: 1px solid rgba(84,255,161,0.28);
+      border-radius: 22px;
+      padding: clamp(22px,4vw,46px);
+      box-shadow: 0 0 40px rgba(0,255,119,0.24), inset 0 0 30px rgba(0,120,60,0.2);
+      animation: fadeIn 0.5s ease;
+    }
+    .home-title { font-size: clamp(2.2rem,8vw,5rem); margin:0 0 16px; letter-spacing:0.06em; text-transform: uppercase; }
+    .home-subtitle { font-size: clamp(1.1rem,2.8vw,2rem); margin: 0 0 18px; color:#cde8d2; }
+    .home-actions { display:flex; gap:12px; flex-wrap:wrap; margin-top: 18px; }
+    .ghost-btn {
+      border: 1px solid rgba(143, 214, 164, 0.4);
+      background: rgba(6, 26, 14, 0.45);
+      color: #d3f1da;
+      padding: 14px 26px;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .creator { margin-top: 30px; font-size:1.25rem; color:#b8d8c0; }
+    .creator strong { color:#50ff9f; text-shadow:0 0 12px rgba(80,255,159,0.45); }
+    .credits-body { display:grid; place-items:center; min-height:100%; }
+    .credits-card {
+      width:min(780px, 96%);
+      background: linear-gradient(180deg, rgba(4, 19, 12, 0.92), rgba(2, 14, 8, 0.95));
+      border:1px solid rgba(90, 230, 154, 0.26);
+      border-radius:20px;
+      padding: clamp(24px, 4vw, 40px);
+      animation: fadeIn 0.45s ease;
+    }
+    .credits-main { font-size: clamp(1.1rem,2.7vw,1.5rem); line-height:1.6; color:#d8f0df; white-space:pre-line; margin: 18px auto; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform: translateY(0);} }
     @media (max-width: 700px) { .hud { grid-template-columns: 1fr; } .main-btn { padding: 16px; } }
   </style>
 </head>
 <body>
   <div class="app" id="app">
     <section id="homeScreen" class="screen active" aria-label="Home">
-      <h1>5 Seconds</h1>
-      <p class="subtitle">One Button. 80 Levels. 5 Seconds Each.</p>
-      <p class="desc">Every level gives you a rule.
+      <div class="home-wrap">
+        <div class="home-card">
+          <h1 class="home-title">5 Seconds</h1>
+          <p class="home-subtitle">One Button. 80 Levels. 5 Seconds Each.</p>
+          <p class="desc">Every level gives you a rule.
 Press only if it's true.
 Think carefully.
 One mistake and it's over.</p>
-      <button id="startBtn" class="neon-btn">Start Game</button>
-      <p class="info">Best played with sound on.</p>
+          <div class="home-actions">
+            <button id="startBtn" class="neon-btn">Start Game</button>
+            <button id="creditsBtn" class="ghost-btn">Credits</button>
+          </div>
+          <p class="info">Best played with sound on.</p>
+          <p class="creator">Created by <strong>M2Z Alongside</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="creditsScreen" class="screen" aria-label="Credits">
+      <div class="credits-body">
+        <div class="credits-card">
+          <h1>CREDITS</h1>
+          <p class="credits-main">10 Minutes of Creepy/Scary Horror Background Sounds and Music
+By Aidan Halm</p>
+          <p class="end-text">Game created by M2Z Studios</p>
+          <div class="actions">
+            <button id="creditsBackBtn" class="neon-btn">Back to Home</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="gameScreen" class="screen" aria-label="Game">
@@ -163,6 +223,8 @@ One mistake and it's over.</p>
     </section>
   </div>
 
+  <audio id="bgmAudio" src="scary-bgm.mp3" preload="auto" loop></audio>
+
   <script>
     const TOTAL_LEVELS = 80;
     const LEVEL_DURATION_MS = 5000;
@@ -196,11 +258,14 @@ One mistake and it's over.</p>
     const dom = {
       screens: {
         home: document.getElementById('homeScreen'),
+        credits: document.getElementById('creditsScreen'),
         game: document.getElementById('gameScreen'),
         over: document.getElementById('gameOverScreen'),
         win: document.getElementById('winScreen')
       },
       startBtn: document.getElementById('startBtn'),
+      creditsBtn: document.getElementById('creditsBtn'),
+      creditsBackBtn: document.getElementById('creditsBackBtn'),
       restartBtn: document.getElementById('restartBtn'),
       backHomeBtn: document.getElementById('backHomeBtn'),
       playAgainBtn: document.getElementById('playAgainBtn'),
@@ -213,7 +278,8 @@ One mistake and it's over.</p>
       gameOverPresses: document.getElementById('gameOverPresses'),
       gameOverPart: document.getElementById('gameOverPart'),
       winPresses: document.getElementById('winPresses'),
-      winTime: document.getElementById('winTime')
+      winTime: document.getElementById('winTime'),
+      bgmAudio: document.getElementById('bgmAudio')
     };
 
     let animationFrameId = null;
@@ -221,6 +287,7 @@ One mistake and it's over.</p>
     let acceptingInput = false;
     let generatedRun = [];
     let lastFirstLevelId = null;
+    let audioFadeIntervalId = null;
 
     function level(id, part, text, difficultyScore, requiresMemory, validate, options = {}) {
       return {
@@ -424,6 +491,59 @@ One mistake and it's over.</p>
       }
     }
 
+    function clearAudioFade(){
+      if (audioFadeIntervalId) {
+        clearInterval(audioFadeIntervalId);
+        audioFadeIntervalId = null;
+      }
+    }
+
+    async function startBackgroundMusic(){
+      clearAudioFade();
+      const audio = dom.bgmAudio;
+      audio.loop = true;
+      if (audio.paused) {
+        audio.volume = 0.46;
+        try { await audio.play(); } catch (err) { /* user gesture restrictions */ }
+      }
+      updateMusicTension();
+    }
+
+    function stopBackgroundMusic(){
+      clearAudioFade();
+      const audio = dom.bgmAudio;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 0.46;
+    }
+
+    function fadeMusicTo(targetVolume, durationMs = 450){
+      const audio = dom.bgmAudio;
+      if (audio.paused) return;
+      clearAudioFade();
+      const start = audio.volume;
+      const steps = 12;
+      let i = 0;
+      audioFadeIntervalId = setInterval(() => {
+        i += 1;
+        const t = i / steps;
+        audio.volume = start + (targetVolume - start) * t;
+        if (i >= steps) {
+          clearAudioFade();
+          audio.volume = targetVolume;
+        }
+      }, Math.max(16, Math.floor(durationMs / steps)));
+    }
+
+    function updateMusicTension(){
+      const audio = dom.bgmAudio;
+      if (audio.paused) return;
+      let target = 0.46;
+      if (gameState.currentLevel >= 20) target = 0.54;
+      if (gameState.currentLevel >= 56) target = 0.6;
+      audio.volume = Math.min(0.62, target);
+    }
+
     function resetGameState(){
       gameState.currentLevel=1;
       gameState.totalPresses=0;
@@ -444,6 +564,7 @@ One mistake and it's over.</p>
 
     function startGame(){
       clearActiveTimers();
+      startBackgroundMusic();
       resetGameState();
       generatedRun=buildRunLevels(lastFirstLevelId);
       lastFirstLevelId = generatedRun[0]?.id || null;
@@ -470,6 +591,7 @@ One mistake and it's over.</p>
       const partMeta=partForLevel(gameState.currentLevel);
       gameState.difficultyPart=partMeta.part;
       if(gameState.activeLevelDef?.setup){ gameState.activeLevelDef.setup(gameState); }
+      updateMusicTension();
       renderLevelUI();
       animationFrameId=requestAnimationFrame(updateTimerLoop);
     }
@@ -553,6 +675,7 @@ One mistake and it's over.</p>
     }
 
     function endGameOver(){
+      fadeMusicTo(0.22, 650);
       dom.gameOverLevel.textContent=`You reached Level ${gameState.currentLevel}`;
       dom.gameOverPresses.textContent=`Total Presses: ${gameState.totalPresses}`;
       dom.gameOverPart.textContent=`Part ${gameState.difficultyPart} — ${partForLevel(gameState.currentLevel).name}`;
@@ -568,9 +691,17 @@ One mistake and it's over.</p>
 
     function backToHome(){
       clearActiveTimers();
+      stopBackgroundMusic();
       acceptingInput=false;
       lightShake(false);
       showScreen('home');
+    }
+
+    function showCredits(){
+      clearActiveTimers();
+      acceptingInput=false;
+      lightShake(false);
+      showScreen('credits');
     }
 
     function updateBackgroundByLevel(){
@@ -589,6 +720,8 @@ One mistake and it's over.</p>
     }
 
     dom.startBtn.addEventListener('click', startGame);
+    dom.creditsBtn.addEventListener('click', showCredits);
+    dom.creditsBackBtn.addEventListener('click', backToHome);
     dom.restartBtn.addEventListener('click', startGame);
     dom.playAgainBtn.addEventListener('click', startGame);
     dom.backHomeBtn.addEventListener('click', backToHome);
