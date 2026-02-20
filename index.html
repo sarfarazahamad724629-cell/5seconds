@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5 Seconds — Think fast. Or lose.</title>
+  <style>
+    :root {
+      --hue: 120;
+      --bg-core: hsl(var(--hue), 55%, 9%);
+      --bg-mid: hsl(var(--hue), 60%, 6%);
+      --bg-glow: hsla(var(--hue), 85%, 45%, 0.16);
+      --neon: hsl(140, 95%, 62%);
+      --neon-soft: hsla(140, 95%, 62%, 0.45);
+      --text: #eaffea;
+      --muted: #9ec6a0;
+      --danger: #ff5252;
+      --progress: 1;
+      --vignette-opacity: 0;
+      --red-glow-opacity: 0;
+      --shake-x: 0px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 50%, var(--bg-glow), transparent 54%),
+        linear-gradient(180deg, var(--bg-core), var(--bg-mid));
+      overflow: hidden;
+      transition: background 0.8s ease;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    body::before {
+      background: radial-gradient(circle, transparent 45%, rgba(0, 0, 0, 0.78) 100%);
+      opacity: var(--vignette-opacity);
+      transition: opacity 0.6s ease;
+    }
+
+    body::after {
+      background: radial-gradient(circle at 50% 55%, rgba(255, 0, 0, 0.18), transparent 65%);
+      opacity: var(--red-glow-opacity);
+      transition: opacity 0.6s ease;
+    }
+
+    .app {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      transform: translateX(var(--shake-x));
+      transition: transform 100ms linear;
+      padding: 16px;
+    }
+
+    .screen {
+      width: min(900px, 100%);
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      visibility: hidden;
+      position: absolute;
+      inset: 0;
+      margin: auto;
+    }
+
+    .screen.active {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    h1 {
+      font-size: clamp(2.6rem, 9vw, 5rem);
+      margin: 0 0 10px;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 20px var(--neon-soft);
+    }
+
+    .subtitle { color: var(--muted); margin: 8px 0 20px; font-size: clamp(1rem, 2.8vw, 1.5rem); }
+    .desc {
+      margin: 0 auto 24px;
+      max-width: 45ch;
+      line-height: 1.5;
+      color: #c2e2c4;
+      white-space: pre-line;
+    }
+
+    .neon-btn {
+      border: 1px solid hsla(140, 95%, 62%, 0.8);
+      background: rgba(3, 20, 3, 0.78);
+      color: #d9ffd9;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.25s ease;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 0 22px rgba(0, 255, 119, 0.3);
+    }
+
+    .neon-btn:hover,
+    .neon-btn:focus-visible {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 0 30px rgba(0, 255, 119, 0.45);
+      background: rgba(10, 30, 10, 0.95);
+    }
+
+    .info { margin-top: 14px; color: #9ab69b; font-size: 0.9rem; }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 8px auto 20px;
+      width: min(600px, 100%);
+      color: #b7dbba;
+      font-size: clamp(0.9rem, 2.8vw, 1.1rem);
+    }
+
+    .ring-wrap {
+      width: min(84vw, 360px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: 18px auto 0;
+      background:
+        radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.4) 62%),
+        conic-gradient(
+          hsl(calc(var(--hue) * 0.92 + 8), 92%, 54%) calc(var(--progress) * 360deg),
+          rgba(110, 140, 112, 0.15) 0deg
+        );
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      transition: filter 0.22s ease;
+    }
+
+    .main-btn {
+      width: 82%;
+      height: 82%;
+      border-radius: 50%;
+      border: 2px solid hsla(140, 95%, 62%, 0.7);
+      background: radial-gradient(circle at 30% 30%, rgba(21, 50, 27, 0.75), rgba(5, 16, 8, 0.95));
+      color: #ecffec;
+      font-size: clamp(1rem, 2.9vw, 1.4rem);
+      font-weight: 700;
+      line-height: 1.35;
+      text-align: center;
+      padding: 20px;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(0,255,153,0.35);
+      box-shadow: inset 0 0 20px rgba(44, 255, 142, 0.25), 0 0 20px rgba(0, 255, 119, 0.15);
+      transition: transform 0.1s ease, box-shadow 0.2s ease;
+    }
+
+    .main-btn:active { transform: scale(0.98); }
+    .main-btn[disabled] { cursor: not-allowed; opacity: 0.88; }
+
+    .warning-phase .main-btn {
+      animation: pulse 0.5s ease-in-out infinite alternate;
+      box-shadow: inset 0 0 24px rgba(255, 116, 116, 0.34), 0 0 28px rgba(255, 80, 80, 0.38);
+      border-color: rgba(255, 105, 105, 0.85);
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.018); }
+    }
+
+    .end-text { margin: 12px 0; font-size: clamp(1rem, 3vw, 1.25rem); color: #d2e9d4; }
+    .actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+
+    @media (max-width: 500px) {
+      .hud { flex-direction: column; align-items: center; }
+      .main-btn { padding: 16px; font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <section id="homeScreen" class="screen active" aria-label="Home">
+      <h1>5 Seconds</h1>
+      <p class="subtitle">One Button. 30 Levels. 5 Seconds Each.</p>
+      <p class="desc">Every level gives you a rule.
+Press only if it's true.
+Think carefully.
+One mistake and it's over.</p>
+      <button id="startBtn" class="neon-btn">Start Game</button>
+      <p class="info">Best played with sound on.</p>
+    </section>
+
+    <section id="gameScreen" class="screen" aria-label="Game">
+      <div class="hud">
+        <div id="levelLabel">Level 1 / 30</div>
+        <div id="pressLabel">Total Presses: 0</div>
+      </div>
+      <div class="ring-wrap" id="ringWrap">
+        <button id="mainButton" class="main-btn" aria-label="Main action button"></button>
+      </div>
+    </section>
+
+    <section id="gameOverScreen" class="screen" aria-label="Game Over">
+      <h1>Game Over</h1>
+      <p id="gameOverLevel" class="end-text"></p>
+      <p id="gameOverPresses" class="end-text"></p>
+      <div class="actions">
+        <button id="restartBtn" class="neon-btn">Restart</button>
+        <button id="backHomeBtn" class="neon-btn">Back to Home</button>
+      </div>
+    </section>
+
+    <section id="winScreen" class="screen" aria-label="Win">
+      <h1>You Survived.</h1>
+      <p id="winPresses" class="end-text"></p>
+      <p id="winTime" class="end-text"></p>
+      <div class="actions">
+        <button id="playAgainBtn" class="neon-btn">Play Again</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const TOTAL_LEVELS = 30;
+    const LEVEL_DURATION_MS = 5000;
+
+    const gameState = {
+      currentLevel: 1,
+      totalPresses: 0,
+      previousPressed: false,
+      levelStartTime: 0,
+      pressTime: null,
+      randomValueForLevel: 0,
+      pressedThisLevel: false,
+      gameStartTime: 0,
+      pressedLevels: new Set(),
+      level7RuleRemembered: false,
+      minuteAtLevel11: null
+    };
+
+    const dom = {
+      app: document.getElementById('app'),
+      screens: {
+        home: document.getElementById('homeScreen'),
+        game: document.getElementById('gameScreen'),
+        over: document.getElementById('gameOverScreen'),
+        win: document.getElementById('winScreen')
+      },
+      startBtn: document.getElementById('startBtn'),
+      restartBtn: document.getElementById('restartBtn'),
+      backHomeBtn: document.getElementById('backHomeBtn'),
+      playAgainBtn: document.getElementById('playAgainBtn'),
+      levelLabel: document.getElementById('levelLabel'),
+      pressLabel: document.getElementById('pressLabel'),
+      mainButton: document.getElementById('mainButton'),
+      ringWrap: document.getElementById('ringWrap'),
+      gameOverLevel: document.getElementById('gameOverLevel'),
+      gameOverPresses: document.getElementById('gameOverPresses'),
+      winPresses: document.getElementById('winPresses'),
+      winTime: document.getElementById('winTime')
+    };
+
+    const levelLogic = buildLevels();
+    let animationFrameId = null;
+    let acceptingInput = false;
+
+    function buildLevels() {
+      return [
+        { text: 'Press.', validate: () => true },
+        { text: 'Press if level number is odd.', validate: (s) => s.currentLevel % 2 === 1 },
+        { text: "Don\'t press.", validate: () => false },
+        { text: 'Press if 249 + 38 = 287.', validate: () => 249 + 38 === 287 },
+        { text: 'Press button exactly level number times.', validate: (s) => (s.totalPresses + (s.pressedThisLevel ? 1 : 0)) === s.currentLevel },
+        { text: 'Press if OpenAI owns Instagram.', validate: () => false },
+        { text: 'Press if sum of current time digits is even.', validate: () => {
+          const now = new Date();
+          const digits = `${now.getHours()}${now.getMinutes()}${now.getSeconds()}`.split('').map(Number);
+          return digits.reduce((a, b) => a + b, 0) % 2 === 0;
+        }},
+        { text: 'Press if 17 × 3 = 52.', validate: () => false },
+        { text: 'Press if square root of 144 is 12.', validate: () => Math.sqrt(144) === 12 },
+        { text: 'Press if 0.1 + 0.2 === 0.3.', validate: () => 0.1 + 0.2 === 0.3 },
+        { text: 'Press if current minute is prime.', validate: (s) => isPrime(s.minuteAtLevel11 ?? new Date().getMinutes()) },
+        { text: 'Press if seconds divisible by 3.', validate: () => new Date().getSeconds() % 3 === 0 },
+        { text: 'Press if Earth has 2 moons.', validate: () => false },
+        { text: 'Press if India is in Asia.', validate: () => true },
+        { text: 'Press if Instagram is owned by Meta.', validate: () => true },
+        { text: "Don\'t press this.", validate: () => false },
+        { text: 'Press only if you think you shouldn\'t.', validate: () => true },
+        { text: 'Press if this is NOT level 18.', validate: (s) => s.currentLevel !== 18 },
+        { text: 'Press every even level.', validate: (s) => s.currentLevel % 2 === 0 },
+        { text: 'Press only if previous level was pressed.', validate: (s) => s.previousPressed },
+        { text: 'Press exactly 3 seconds after this appears.', validate: (s) => {
+          if (!s.pressedThisLevel || s.pressTime == null) return false;
+          return Math.abs(s.pressTime - 3) <= 0.35;
+        }},
+        { text: 'Press every 3rd level.', validate: (s) => s.currentLevel % 3 === 0 },
+        { text: 'Press if you blinked while reading this.', validate: () => Math.random() > 0.5 },
+        { text: 'Press if level number contains digit 3.', validate: (s) => String(s.currentLevel).includes('3') },
+        { text: 'Press if 2^5 = 32.', validate: () => Math.pow(2, 5) === 32 },
+        { text: 'Press if Fibonacci of 6 is 8.', validate: () => fibonacci(6) === 8 },
+        { text: 'Press if you remember level 7 rule.', validate: (s) => s.level7RuleRemembered },
+        { text: 'Press if random number > 0.7.', validate: (s) => s.randomValueForLevel > 0.7 },
+        { text: 'Press if background color is blue.', validate: () => false },
+        { text: 'Press only if total presses made equals exactly 9.', validate: (s) => (s.totalPresses + (s.pressedThisLevel ? 1 : 0)) === 9 }
+      ];
+    }
+
+    function fibonacci(n) {
+      if (n < 2) return n;
+      let a = 0, b = 1;
+      for (let i = 2; i <= n; i += 1) {
+        const c = a + b;
+        a = b;
+        b = c;
+      }
+      return b;
+    }
+
+    function isPrime(num) {
+      if (num < 2) return false;
+      for (let i = 2; i <= Math.sqrt(num); i += 1) {
+        if (num % i === 0) return false;
+      }
+      return true;
+    }
+
+    function showScreen(name) {
+      Object.values(dom.screens).forEach(screen => screen.classList.remove('active'));
+      dom.screens[name].classList.add('active');
+    }
+
+    function resetGameState() {
+      gameState.currentLevel = 1;
+      gameState.totalPresses = 0;
+      gameState.previousPressed = false;
+      gameState.levelStartTime = 0;
+      gameState.pressTime = null;
+      gameState.randomValueForLevel = 0;
+      gameState.pressedThisLevel = false;
+      gameState.gameStartTime = performance.now();
+      gameState.pressedLevels = new Set();
+      gameState.level7RuleRemembered = false;
+      gameState.minuteAtLevel11 = null;
+    }
+
+    function startGame() {
+      resetGameState();
+      showScreen('game');
+      startLevel();
+    }
+
+    function startLevel() {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+      acceptingInput = true;
+      dom.mainButton.disabled = false;
+      dom.ringWrap.classList.remove('warning-phase');
+      gameState.levelStartTime = performance.now();
+      gameState.pressTime = null;
+      gameState.pressedThisLevel = false;
+      gameState.randomValueForLevel = Math.random();
+      if (gameState.currentLevel === 11) {
+        gameState.minuteAtLevel11 = new Date().getMinutes();
+      }
+
+      if (gameState.currentLevel > 7) {
+        gameState.level7RuleRemembered = true;
+      }
+
+      renderLevelUI();
+      animationFrameId = requestAnimationFrame(updateTimerLoop);
+    }
+
+    function renderLevelUI() {
+      const level = levelLogic[gameState.currentLevel - 1];
+      dom.mainButton.textContent = level.text;
+      dom.levelLabel.textContent = `Level ${gameState.currentLevel} / ${TOTAL_LEVELS}`;
+      dom.pressLabel.textContent = `Total Presses: ${gameState.totalPresses}`;
+      updateBackgroundByLevel();
+      document.documentElement.style.setProperty('--progress', '1');
+    }
+
+    function updateTimerLoop(now) {
+      const elapsed = now - gameState.levelStartTime;
+      const remainingRatio = Math.max(0, 1 - elapsed / LEVEL_DURATION_MS);
+      document.documentElement.style.setProperty('--progress', String(remainingRatio));
+
+      if (elapsed >= 4000) {
+        dom.ringWrap.classList.add('warning-phase');
+        lightShake(true);
+      } else {
+        dom.ringWrap.classList.remove('warning-phase');
+        lightShake(false);
+      }
+
+      if (elapsed >= LEVEL_DURATION_MS) {
+        resolveLevel();
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(updateTimerLoop);
+    }
+
+    function handlePress() {
+      if (!acceptingInput || gameState.pressedThisLevel) return;
+      gameState.pressedThisLevel = true;
+      gameState.totalPresses += 1;
+      gameState.pressedLevels.add(gameState.currentLevel);
+      gameState.pressTime = (performance.now() - gameState.levelStartTime) / 1000;
+      dom.pressLabel.textContent = `Total Presses: ${gameState.totalPresses}`;
+      dom.mainButton.disabled = true;
+      resolveLevel();
+    }
+
+    function resolveLevel() {
+      if (!acceptingInput) return;
+      acceptingInput = false;
+      dom.mainButton.disabled = true;
+      lightShake(false);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+
+      const level = levelLogic[gameState.currentLevel - 1];
+      const conditionTrue = Boolean(level.validate(gameState));
+      const wasPressed = gameState.pressedThisLevel;
+      const correct = conditionTrue === wasPressed;
+
+      if (!correct) {
+        endGameOver();
+        return;
+      }
+
+      gameState.previousPressed = wasPressed;
+
+      if (gameState.currentLevel >= TOTAL_LEVELS) {
+        endWin();
+        return;
+      }
+
+      gameState.currentLevel += 1;
+      setTimeout(startLevel, 350);
+    }
+
+    function endGameOver() {
+      const reached = gameState.currentLevel;
+      dom.gameOverLevel.textContent = `You reached Level ${reached}`;
+      dom.gameOverPresses.textContent = `Total Presses: ${gameState.totalPresses}`;
+      showScreen('over');
+    }
+
+    function endWin() {
+      const totalSeconds = ((performance.now() - gameState.gameStartTime) / 1000).toFixed(1);
+      dom.winPresses.textContent = `Total Presses: ${gameState.totalPresses}`;
+      dom.winTime.textContent = `Total Time Taken: ${totalSeconds}s`;
+      showScreen('win');
+    }
+
+    function backToHome() {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      acceptingInput = false;
+      lightShake(false);
+      showScreen('home');
+    }
+
+    function updateBackgroundByLevel() {
+      const level = gameState.currentLevel;
+      const hue = 120 - ((level - 1) / 29) * 120;
+      document.documentElement.style.setProperty('--hue', hue.toFixed(2));
+
+      const vignette = level >= 20 ? Math.min(0.58, (level - 19) * 0.05) : 0;
+      const redGlow = level >= 25 ? Math.min(0.8, (level - 24) * 0.14) : 0;
+      document.documentElement.style.setProperty('--vignette-opacity', vignette.toString());
+      document.documentElement.style.setProperty('--red-glow-opacity', redGlow.toString());
+    }
+
+    function lightShake(on) {
+      if (!on || gameState.currentLevel < 28) {
+        document.documentElement.style.setProperty('--shake-x', '0px');
+        return;
+      }
+      const amount = (Math.random() - 0.5) * 3;
+      document.documentElement.style.setProperty('--shake-x', `${amount.toFixed(2)}px`);
+    }
+
+    dom.startBtn.addEventListener('click', startGame);
+    dom.restartBtn.addEventListener('click', startGame);
+    dom.playAgainBtn.addEventListener('click', startGame);
+    dom.backHomeBtn.addEventListener('click', backToHome);
+    dom.mainButton.addEventListener('click', handlePress);
+
+    updateBackgroundByLevel();
+  </script>
+</body>
+</html>
