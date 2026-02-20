@@ -248,7 +248,8 @@ One mistake and it's over.</p>
       gameStartTime: 0,
       pressedLevels: new Set(),
       level7RuleRemembered: false,
-      minuteAtLevel11: null
+      minuteAtLevel11: null,
+      totalPressesAtLevelStart: 0
     };
 
     const dom = {
@@ -283,7 +284,7 @@ One mistake and it's over.</p>
         { text: 'Press if level number is odd.', validate: (s) => s.currentLevel % 2 === 1 },
         { text: "Don\'t press.", validate: () => false },
         { text: 'Press if 249 + 38 = 287.', validate: () => 249 + 38 === 287 },
-        { text: 'Press button exactly level number times.', validate: (s) => s.totalPresses === s.currentLevel },
+        { text: 'Press button exactly level number times.', validate: (s) => s.totalPressesAtLevelStart === (s.currentLevel - 1) },
         { text: 'Press if OpenAI owns Instagram.', validate: () => false },
         { text: 'Press if sum of current time digits is even.', validate: () => {
           const now = new Date();
@@ -355,6 +356,7 @@ One mistake and it's over.</p>
       gameState.pressedLevels = new Set();
       gameState.level7RuleRemembered = false;
       gameState.minuteAtLevel11 = null;
+      gameState.totalPressesAtLevelStart = 0;
     }
 
     function startGame() {
@@ -372,6 +374,7 @@ One mistake and it's over.</p>
       gameState.levelStartTime = performance.now();
       gameState.pressTime = null;
       gameState.pressedThisLevel = false;
+      gameState.totalPressesAtLevelStart = gameState.totalPresses;
       gameState.randomValueForLevel = Math.random();
       if (gameState.currentLevel === 11) {
         gameState.minuteAtLevel11 = new Date().getMinutes();
